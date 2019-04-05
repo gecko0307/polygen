@@ -63,7 +63,6 @@ void main(string[] args)
         return;
     }
 
-    // TODO: process multiple targets?
     auto img = loadImage(targets[0]);
     auto imgbin = alphaBinarization(img);
 
@@ -76,47 +75,60 @@ void main(string[] args)
     canvas.lineColor = Color4f(1, 0, 0, 1);
     canvas.fillColor = Color4f(1, 0, 0, 1);
 
-    string points = "";
+    // TODO: use json serializer instead of string formatting
+    string fixtures = "";
 
-    // TODO: multiple fixtures?
     foreach(ri, region; rp.regions)
     {
+        string points = "";
+
         for(size_t i = 0; i < region.convexHull.xs.length; i += step)
         {
             auto x = region.convexHull.xs[i];
             auto y = region.convexHull.ys[i];
 
-            canvas.beginPath();
-            canvas.pathMoveTo(x - 1, y - 2);
-            canvas.pathLineTo(x + 1, y - 2);
-            canvas.pathLineTo(x + 1, y + 1);
-            canvas.pathLineTo(x - 1, y + 1);
-            canvas.pathLineTo(x - 1, y - 2);
-            canvas.pathFill();
-            canvas.endPath();
+            if (savePointsImage)
+            {
+                canvas.beginPath();
+                canvas.pathMoveTo(x - 1, y - 2);
+                canvas.pathLineTo(x + 1, y - 2);
+                canvas.pathLineTo(x + 1, y + 1);
+                canvas.pathLineTo(x - 1, y + 1);
+                canvas.pathLineTo(x - 1, y - 2);
+                canvas.pathFill();
+                canvas.endPath();
+            }
 
             if (i > 0)
                 points ~= ", ";
             points ~= format("{ \"x\":%s, \"y\":%s }", x, y);
         }
+
+        string fixture =
+"
+		{
+			\"isSensor\": false,
+			\"vertices\": [
+				[%s]
+			]
+		}";
+
+        if (ri > 0)
+            fixtures ~= ",\n";
+        fixtures ~= format(fixture, points);
     }
 
     string json =
 "{
 	\"type\": \"fromPhysicsEditor\",
 	\"fixtures\": [
-		{
-			\"isSensor\": false,
-			\"vertices\": [
-				[%s]
-			]
-		}
+        %s
 	]
 }";
 
     if (savePointsImage)
         canvas.image.savePNG("out.png");
 
-    string result = format(json, points);
+    string result = format(json, fixtures);
     writeln(result);
 }

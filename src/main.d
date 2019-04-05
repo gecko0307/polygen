@@ -29,10 +29,10 @@ void main(string[] args)
         return;
 
     auto img = loadPNG(args[1]);
-    auto _imgbin = alphaBinarization(img);
+    auto imgbin = alphaBinarization(img);
 
-    auto imgbin = Mat2D!ubyte(_imgbin.data, _imgbin.height, _imgbin.width);
-    auto rp = new RegionProps(imgbin, false);
+    auto mat2d = Mat2D!ubyte(imgbin.data, imgbin.height, imgbin.width);
+    auto rp = new RegionProps(mat2d, false);
     rp.calculateProps();
 
     SuperImage res = img.dup;
@@ -40,11 +40,12 @@ void main(string[] args)
     canvas.lineColor = Color4f(1, 0, 0, 1);
     canvas.fillColor = Color4f(1, 0, 0, 1);
 
-    size_t n = 4;
+    size_t n = 2;
 
     string points = "";
 
     // TODO: multiple fixtures?
+    // TODO: n as argument
     foreach(ri, region; rp.regions)
     {
         for(size_t i = 0; i < region.convexHull.xs.length; i += n)
@@ -79,6 +80,9 @@ void main(string[] args)
 		}
 	]
 }";
+
+    // TODO: make this optional
+    canvas.image.savePNG("out.png");
 
     string result = format(json, points);
     writeln(result);

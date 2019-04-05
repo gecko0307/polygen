@@ -90,11 +90,11 @@ void main(string[] args)
             if (savePointsImage)
             {
                 canvas.beginPath();
-                canvas.pathMoveTo(x - 1, y - 2);
-                canvas.pathLineTo(x + 1, y - 2);
+                canvas.pathMoveTo(x - 1, y - 1);
+                canvas.pathLineTo(x + 1, y - 1);
                 canvas.pathLineTo(x + 1, y + 1);
                 canvas.pathLineTo(x - 1, y + 1);
-                canvas.pathLineTo(x - 1, y - 2);
+                canvas.pathLineTo(x - 1, y - 1);
                 canvas.pathFill();
                 canvas.endPath();
             }

@@ -3,6 +3,7 @@ module main;
 import std.stdio;
 import std.range;
 import std.string;
+import std.getopt;
 
 import dlib.image;
 
@@ -25,10 +26,45 @@ SuperImage alphaBinarization(SuperImage img, float alphaThreshold = 0.0f)
 
 void main(string[] args)
 {
-    if (args.length < 1)
-        return;
+    string info = "Polygen - collision shape generator for Phaser 3 and Matter.js.\nUsage:\n   polygen [options] filename\n\nOptions:";
 
-    auto img = loadPNG(args[1]);
+    uint step = 1;
+    bool savePointsImage = false;
+
+    try
+    {
+        auto helpInformation = getopt(
+            args,
+            "step", "Convex hull points traversal step (defaults to 1)", &step,
+            "save", "Render convex hull points to out.png", &savePointsImage);
+
+        if (helpInformation.helpWanted)
+        {
+            defaultGetoptPrinter(info,
+            helpInformation.options);
+            return;
+        }
+    }
+    catch(Exception)
+    {
+        writeln("Illegal option");
+        return;
+    }
+
+    string program = args[0];
+    string[] targets = args[1..$];
+
+    if (step == 0)
+        step = 1;
+
+    if (targets.length < 1)
+    {
+        writeln("Please, provide an image filename");
+        return;
+    }
+
+    // TODO: process multiple targets?
+    auto img = loadImage(targets[0]);
     auto imgbin = alphaBinarization(img);
 
     auto mat2d = Mat2D!ubyte(imgbin.data, imgbin.height, imgbin.width);
@@ -40,15 +76,12 @@ void main(string[] args)
     canvas.lineColor = Color4f(1, 0, 0, 1);
     canvas.fillColor = Color4f(1, 0, 0, 1);
 
-    size_t n = 2;
-
     string points = "";
 
     // TODO: multiple fixtures?
-    // TODO: n as argument
     foreach(ri, region; rp.regions)
     {
-        for(size_t i = 0; i < region.convexHull.xs.length; i += n)
+        for(size_t i = 0; i < region.convexHull.xs.length; i += step)
         {
             auto x = region.convexHull.xs[i];
             auto y = region.convexHull.ys[i];
@@ -81,8 +114,8 @@ void main(string[] args)
 	]
 }";
 
-    // TODO: make this optional
-    canvas.image.savePNG("out.png");
+    if (savePointsImage)
+        canvas.image.savePNG("out.png");
 
     string result = format(json, points);
     writeln(result);

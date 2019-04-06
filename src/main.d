@@ -4,6 +4,7 @@ import std.stdio;
 import std.range;
 import std.string;
 import std.getopt;
+import std.json;
 
 import dlib.image;
 
@@ -29,6 +30,7 @@ void main(string[] args)
     string info = "Polygen - collision shape generator for Phaser 3 and Matter.js.\nUsage:\n   polygen [options] filename\n\nOptions:";
 
     uint step = 1;
+    bool pretty = false;
     bool savePointsImage = false;
 
     try
@@ -36,6 +38,7 @@ void main(string[] args)
         auto helpInformation = getopt(
             args,
             "step", "Convex hull points traversal step (defaults to 1)", &step,
+            "pretty", "Pretty-print output", &pretty,
             "save", "Render convex hull points to out.png", &savePointsImage);
 
         if (helpInformation.helpWanted)
@@ -74,13 +77,14 @@ void main(string[] args)
     Canvas canvas = new Canvas(res);
     canvas.lineColor = Color4f(1, 0, 0, 1);
     canvas.fillColor = Color4f(1, 0, 0, 1);
-
-    // TODO: use json serializer instead of string formatting
-    string fixtures = "";
+    
+    JSONValue[] fixtures;
 
     foreach(ri, region; rp.regions)
     {
         string points = "";
+        
+        JSONValue[] vertices;
 
         for(size_t i = 0; i < region.convexHull.xs.length; i += step)
         {
@@ -98,37 +102,29 @@ void main(string[] args)
                 canvas.pathFill();
                 canvas.endPath();
             }
-
-            if (i > 0)
-                points ~= ", ";
-            points ~= format("{ \"x\":%s, \"y\":%s }", x, y);
+            
+            vertices ~= JSONValue([
+                "x": JSONValue(x),
+                "y": JSONValue(y)
+            ]);
         }
 
-        string fixture =
-"
-		{
-			\"isSensor\": false,
-			\"vertices\": [
-				[%s]
-			]
-		}";
-
-        if (ri > 0)
-            fixtures ~= ",\n";
-        fixtures ~= format(fixture, points);
+        fixtures ~= JSONValue([
+            "isSensor": JSONValue(false),
+            "vertices": JSONValue([JSONValue(vertices)])
+        ]);
     }
+    
+    JSONValue json = [
+        "type": JSONValue("fromPhysicsEditor"),
+        "fixtures": JSONValue(fixtures)
+    ];
 
-    string json =
-"{
-	\"type\": \"fromPhysicsEditor\",
-	\"fixtures\": [
-        %s
-	]
-}";
+    if (pretty)
+        writeln(json.toPrettyString);
+    else
+        writeln(json.toString);
 
     if (savePointsImage)
         canvas.image.savePNG("out.png");
-
-    string result = format(json, fixtures);
-    writeln(result);
 }
